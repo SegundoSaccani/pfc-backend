@@ -1,0 +1,362 @@
+BACKEND:
+- guarda relevamientos
+- devuelve relevamientos
+- devuelve reglamentación
+- calcula indicadores
+- maneja usuarios/roles
+- expone todo por API
+
+WEB:
+- consulta relevamientos
+- manda filtros
+- muestra indicadores
+- tablas
+- gráficos
+- mapa
+- exportación
+
+REGLAS GENERALES
+- JSON para request/response
+- Coordenadas como latitud/longitud
+- IDs numéricos
+- la web no necesita saber cómo se guarda internamente en PostgreSQL
+- los indicadores se calculan en backend (la web solamente los muestra)
+
+AUTENTICACIÓN
+
+POST /api/auth/login
+
+Request:
+
+{
+  "usuario": "usuario1",
+  "password": "..."
+}
+
+Response (ejemplo):
+
+{
+  "usuario": {
+    "id": 1,
+    "nombreUsuario": "usuario1",
+    "rol": "USUARIO"
+  },
+  "token": "..."
+}
+
+- definir mecanismo de autenticación
+- definir bien roles/permisos
+
+RELEVAMIENTOS
+
+POST /api/relevamientos (lo usa la app móvil para sincronizar un relevamiento con el backend)
+
+Request:
+
+{
+  "fechaHora": "2026-09-13T18:30:00-03:00",
+  "puntoDesembarco": "Puerto de Santa Fe",
+  "ubicacion": {
+    "latitud": -31.633,
+    "longitud": -60.699
+  },
+  "observaciones": "Sin observaciones",
+  "pescadorId": 145,
+  "individuos": [
+    {
+      "especieId": 1,
+      "talla": 42.5,
+      "confianzaEspecie": null
+    },
+    {
+      "especieId": 1,
+      "talla": 45.0,
+      "confianzaEspecie": null
+    }
+  ]
+}
+
+Response:
+
+{
+  "id": 125,
+  "estado": "REGISTRADO"
+}
+
+- ver cómo evitar duplicados cuando la app reintenta sincronizar
+- definir cómo se mandan/guardan las fotos
+
+GET /api/relevamientos (lo usa la WEB)
+
+posibles filtros:
+
+fechaDesde
+fechaHasta
+especieId
+puntoDesembarcoId
+pescadorId
+page
+size
+
+ejemplo:
+
+GET /api/relevamientos?fechaDesde=2026-09-01&fechaHasta=2026-09-30&especieId=1
+
+Response:
+
+{
+  "items": [
+    {
+      "id": 125,
+      "fechaHora": "2026-09-13T18:30:00-03:00",
+      "puntoDesembarco": {
+        "id": 3,
+        "nombre": "Puerto de Santa Fe"
+      },
+      "ubicacion": {
+        "latitud": -31.633,
+        "longitud": -60.699
+      },
+      "fiscalizador": {
+        "id": 4,
+        "nombreUsuario": "fiscalizador1"
+      },
+      "cantidadIndividuos": 2
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 128
+}
+
+GET /api/relevamientos/{id} (devuelve el detalle completo de un relevamiento)
+
+Ejemplo:
+
+GET /api/relevamientos/125
+
+Response:
+
+{
+  "id": 125,
+  "fechaHora": "2026-09-13T18:30:00-03:00",
+  "puntoDesembarco": {
+    "id": 3,
+    "nombre": "Puerto de Santa Fe"
+  },
+  "ubicacion": {
+    "latitud": -31.633,
+    "longitud": -60.699
+  },
+  "observaciones": "Sin observaciones",
+  "fiscalizador": {
+    "id": 4,
+    "nombreUsuario": "fiscalizador1"
+  },
+  "pescador": {
+    "id": 145
+  },
+  "individuos": [
+    {
+      "id": 501,
+      "especie": {
+        "id": 1,
+        "nombre": "Sábalo"
+      },
+      "talla": 42.5,
+      "confianzaEspecie": null
+    }
+  ]
+}
+
+- el pescador solamente debería venir si el usuario tiene permiso para verlo
+
+ESPECIES
+
+GET /api/especies
+
+Response:
+
+[
+  {
+    "id": 1,
+    "nombre": "Sábalo"
+  },
+  {
+    "id": 2,
+    "nombre": "Surubí"
+  },
+  {
+    "id": 3,
+    "nombre": "Boga"
+  }
+]
+
+PUNTOS DE DESEMBARCO
+
+GET /api/puntos-desembarco
+
+Response ejemplo:
+
+[
+  {
+    "id": 1,
+    "nombre": "Puerto de Santa Fe",
+    "ubicacion": {
+      "latitud": -31.633,
+      "longitud": -60.699
+    }
+  }
+]
+
+- esto no sé igual si va: en el diagrama de BD no tenemos Punto de desembarco como entidad aparte
+
+REGLAMENTACIÓN
+
+GET /api/reglamentacion (lo usa principalmente la app para actualizar las reglas que después usa Validación)
+
+Ejemplo:
+
+GET /api/reglamentacion?fecha=2026-09-13
+
+Response ejemplo:
+
+{
+  "id": 4,
+  "fechaInicio": "2026-01-01",
+  "fechaFin": null,
+  "reglas": [
+    {
+      "id": 15,
+
+      "especie": {
+        "id": 1,
+        "nombre": "Sábalo"
+      },
+      "tallaMinima": 42.0,
+      "tallaMaxima": null,
+      "veda": false (DEFINIR SI VA O NO ESTO)
+    },
+    {
+      "id": 16,
+      "especie": {
+        "id": 2,
+        "nombre": "Dorado"
+      },
+      "tallaMinima": null,
+      "tallaMaxima": null,
+      "veda": true (DEFINIR SI VA O NO ESTO)
+    }
+  ]
+}
+
+INDICADORES
+
+- Los calcula el BACKEND
+- la WEB manda filtros y recibe el resultado listo para mostrar
+
+GET /api/indicadores/capturas-por-especie
+
+Ejemplo:
+
+GET /api/indicadores/capturas-por-especie?fechaDesde=2026-09-01&fechaHasta=2026-09-30
+
+Response:
+
+{
+  "datos": [
+    {
+      "especieId": 1,
+      "nombreEspecie": "Sábalo",
+      "cantidad": 146
+    },
+    {
+      "especieId": 2,
+      "nombreEspecie": "Surubí",
+      "cantidad": 37
+    }
+  ]
+}
+
+GET /api/indicadores/capturas-por-punto
+
+Response:
+
+{
+  "datos": [
+    {
+      "puntoDesembarcoId": 1,
+      "nombre": "Puerto de Santa Fe",
+      "cantidad": 210
+    },
+    {
+      "puntoDesembarcoId": 2,
+      "nombre": "Desvío Arijón",
+      "cantidad": 95
+    }
+  ]
+}
+
+GET /api/indicadores/evolucion-temporal
+
+Ejemplo:
+
+GET /api/indicadores/evolucion-temporal?fechaDesde=2026-01-01&fechaHasta=2026-09-30&agrupacion=mes
+
+Response:
+
+{
+  "agrupacion": "mes",
+  "datos": [
+    {
+      "periodo": "2026-07",
+      "cantidad": 340
+    },
+    {
+      "periodo": "2026-08",
+      "cantidad": 415
+    }
+  ]
+}
+
+MAPA
+
+(por ahora se puede sacar de los relevamientos porque ya tenemos ubicación)
+si después necesitamos algo más agregado:
+GET /api/indicadores/distribucion-geografica
+
+EXPORTACIÓN
+
+Decidir (lo que sea más fácil/directo)
+a. CSV generado desde la web
+b. archivo generado por backend
+
+ENDPOINTS QUE TENDRÍAMOS POR AHORA
+
+POST /api/auth/login
+
+POST /api/relevamientos
+GET  /api/relevamientos
+GET  /api/relevamientos/{id}
+
+GET /api/especies
+GET /api/puntos-desembarco
+GET /api/reglamentacion
+
+GET /api/indicadores/capturas-por-especie
+GET /api/indicadores/capturas-por-punto
+GET /api/indicadores/evolucion-temporal
+
+
+PENDIENTES
+- autenticación
+- roles/permisos
+- punto de desembarco en BD
+- duplicados al sincronizar
+- fotos
+- paginación
+- exportación
+- endpoints de usuarios/admin
+- ver si hace falta endpoint especial para mapa
+- cerrar nombres de campos/endpoints
+- cerrar bien cómo representamos reglamentación/vedas
