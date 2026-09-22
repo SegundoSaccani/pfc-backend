@@ -1,5 +1,5 @@
 CREATE TABLE "Especie_Pescado"(
-    "id" BIGINT NOT NULL,
+    "id" BIGINT GENERATED ALWAYS AS IDENTITY,
     "nombre_especie" VARCHAR(255) NOT NULL
 );
 ALTER TABLE
@@ -7,7 +7,7 @@ ALTER TABLE
 ALTER TABLE
     "Especie_Pescado" ADD CONSTRAINT "especie_pescado_nombre_especie_unique" UNIQUE("nombre_especie");
 CREATE TABLE "Pescador"(
-    "id" BIGINT NOT NULL,
+    "id" BIGINT GENERATED ALWAYS AS IDENTITY,
     "nro_pescador" BIGINT NOT NULL
 );
 ALTER TABLE
@@ -15,7 +15,7 @@ ALTER TABLE
 ALTER TABLE
     "Pescador" ADD CONSTRAINT "pescador_nro_pescador_unique" UNIQUE("nro_pescador");
 CREATE TABLE "Pescado_individuo"(
-    "id" BIGINT NOT NULL,
+    "id" BIGINT GENERATED ALWAYS AS IDENTITY,
     "talla" FLOAT(53) NOT NULL,
     "confianza_especie" FLOAT(53) NULL,
     "id_relevamiento" BIGINT NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE "Pescado_individuo"(
 ALTER TABLE
     "Pescado_individuo" ADD PRIMARY KEY("id");
 CREATE TABLE "Relevamiento"(
-    "id" BIGINT NOT NULL,
+    "id" BIGINT GENERATED ALWAYS AS IDENTITY,
     "fecha_hora" TIMESTAMP(0) WITH
         TIME zone NOT NULL,
         "id_punto_desembarco" BIGINT NULL,
@@ -42,14 +42,14 @@ ALTER TABLE
 ALTER TABLE
     "Relevamiento" ADD PRIMARY KEY("id");
 CREATE TABLE "Reglamentacion"(
-    "id" BIGINT NOT NULL,
+    "id" BIGINT GENERATED ALWAYS AS IDENTITY,
     "fechaInicio" DATE NOT NULL,
     "fechaFin" DATE NULL
 );
 ALTER TABLE
     "Reglamentacion" ADD PRIMARY KEY("id");
 CREATE TABLE "Regla"(
-    "id" BIGINT NOT NULL,
+    "id" BIGINT GENERATED ALWAYS AS IDENTITY,
     "en_veda" BOOLEAN NOT NULL,
     "talla_min" FLOAT(53) NOT NULL,
     "talla_max" FLOAT(53) NOT NULL,
@@ -61,7 +61,7 @@ ALTER TABLE
 ALTER TABLE
     "Regla" ADD PRIMARY KEY("id");
 CREATE TABLE "Fiscalizador"(
-    "id" BIGINT NOT NULL,
+    "id" BIGINT GENERATED ALWAYS AS IDENTITY,
     "nombre_user" VARCHAR(255) NOT NULL
 );
 ALTER TABLE
@@ -69,7 +69,7 @@ ALTER TABLE
 ALTER TABLE
     "Fiscalizador" ADD CONSTRAINT "fiscalizador_nombre_user_unique" UNIQUE("nombre_user");
 CREATE TABLE "Punto_desembarco"(
-    "id" BIGINT NOT NULL,
+    "id" BIGINT GENERATED ALWAYS AS IDENTITY,
     "nombre" VARCHAR(255) NOT NULL,
     "nro_identificacion" BIGINT NOT NULL
 );
