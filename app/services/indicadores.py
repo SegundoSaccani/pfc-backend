@@ -32,7 +32,7 @@ def capturas_por_punto(session: Session, filtros: FiltrosIndicador) -> CapturasP
     filas = repo.capturas_por_punto(session, filtros)
 
     desglose_por_punto: dict[int, list[CapturaPorEspecieDesglose]] = {}
-    incluir_desglose = filtros.especie_id is None
+    incluir_desglose = filtros.especie is None
     if incluir_desglose:
         for punto_id, especie_id, nombre_especie, cantidad in repo.capturas_por_punto_desglose_especie(
             session, filtros

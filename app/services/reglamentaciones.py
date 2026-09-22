@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.errors import Conflicto, ErrorValidacion, RecursoNoEncontrado
 from app.core.tz import hoy
 from app.repositories import reglamentaciones as repo
-from app.repositories.relevamientos import existe_especie
+from app.repositories.relevamientos import obtener_especie_por_nombre
 from app.schemas.reglamentacion import (
     ReglaCreate,
     ReglaDetalle,
@@ -105,10 +105,11 @@ def crear_regla(session: Session, reglamentacion_id: int, payload: ReglaCreate) 
     if repo.obtener_por_id(session, reglamentacion_id) is None:
         raise RecursoNoEncontrado(f"No existe la reglamentación {reglamentacion_id}.")
 
-    if not existe_especie(session, payload.especie_id):
+    especie = obtener_especie_por_nombre(session, payload.especie)
+    if especie is None:
         raise ErrorValidacion(
-            f"No existe la especie {payload.especie_id}.",
-            [{"campo": "especieId", "mensaje": "La especie no existe."}],
+            f"No existe la especie '{payload.especie}'.",
+            [{"campo": "especie", "mensaje": "La especie no existe."}],
         )
 
     talla_min, talla_max = _tallas_segun_convencion_veda(
@@ -117,7 +118,7 @@ def crear_regla(session: Session, reglamentacion_id: int, payload: ReglaCreate) 
 
     try:
         regla = repo.crear_regla(
-            session, reglamentacion_id, payload.especie_id, payload.veda, talla_min, talla_max
+            session, reglamentacion_id, especie.id, payload.veda, talla_min, talla_max
         )
         session.commit()
     except IntegrityError:
@@ -132,11 +133,14 @@ def actualizar_regla(session: Session, regla_id: int, payload: ReglaUpdate) -> R
     if regla is None:
         raise RecursoNoEncontrado(f"No existe la regla {regla_id}.")
 
-    if payload.especie_id is not None and not existe_especie(session, payload.especie_id):
-        raise ErrorValidacion(
-            f"No existe la especie {payload.especie_id}.",
-            [{"campo": "especieId", "mensaje": "La especie no existe."}],
-        )
+    especie = None
+    if payload.especie is not None:
+        especie = obtener_especie_por_nombre(session, payload.especie)
+        if especie is None:
+            raise ErrorValidacion(
+                f"No existe la especie '{payload.especie}'.",
+                [{"campo": "especie", "mensaje": "La especie no existe."}],
+            )
 
     talla_min, talla_max = _tallas_segun_convencion_veda(
         payload.veda, payload.talla_minima, payload.talla_maxima
@@ -145,8 +149,8 @@ def actualizar_regla(session: Session, regla_id: int, payload: ReglaUpdate) -> R
     regla.en_veda = payload.veda
     regla.talla_min = talla_min
     regla.talla_max = talla_max
-    if payload.especie_id is not None:
-        regla.id_especie = payload.especie_id
+    if especie is not None:
+        regla.id_especie = especie.id
 
     try:
         session.commit()

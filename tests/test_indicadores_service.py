@@ -53,7 +53,7 @@ def test_capturas_por_punto_no_arma_desglose_si_hay_filtro_de_especie(monkeypatc
     llamado = MagicMock()
     monkeypatch.setattr(service.repo, "capturas_por_punto_desglose_especie", llamado)
 
-    resultado = service.capturas_por_punto(session, FiltrosIndicador(especie_id=1))
+    resultado = service.capturas_por_punto(session, FiltrosIndicador(especie="Sábalo"))
 
     llamado.assert_not_called()
     assert resultado.datos[0].por_especie is None

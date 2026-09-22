@@ -30,18 +30,18 @@ def _streaming_csv(filas, nombre_archivo: str) -> StreamingResponse:
 def exportar_relevamientos(
     fechaDesde: date | None = Query(None),
     fechaHasta: date | None = Query(None),
-    especieId: int | None = Query(None),
-    puntoDesembarcoId: int | None = Query(None),
-    pescadorId: int | None = Query(None),
+    especie: str | None = Query(None),
+    puntoDesembarco: str | None = Query(None),
+    nroPescador: int | None = Query(None),
     db: Session = Depends(get_db),
     _usuario=Depends(require_rol(*_ROLES_EXPORT)),
 ) -> StreamingResponse:
     filtros = FiltrosRelevamiento(
         fecha_desde=fechaDesde,
         fecha_hasta=fechaHasta,
-        especie_id=especieId,
-        punto_desembarco_id=puntoDesembarcoId,
-        pescador_id=pescadorId,
+        especie=especie,
+        punto_desembarco=puntoDesembarco,
+        nro_pescador=nroPescador,
     )
     filas, nombre_archivo = service.exportar_relevamientos(db, filtros)
     return _streaming_csv(filas, nombre_archivo)
@@ -52,8 +52,8 @@ def exportar_indicador(
     indicador: IndicadorExportable,
     fechaDesde: date | None = Query(None),
     fechaHasta: date | None = Query(None),
-    especieId: int | None = Query(None),
-    puntoDesembarcoId: int | None = Query(None),
+    especie: str | None = Query(None),
+    puntoDesembarco: str | None = Query(None),
     agrupacion: Agrupacion = Query(Agrupacion.MES),
     db: Session = Depends(get_db),
     _usuario=Depends(require_rol(*_ROLES_EXPORT)),
@@ -61,8 +61,8 @@ def exportar_indicador(
     filtros = FiltrosIndicador(
         fecha_desde=fechaDesde,
         fecha_hasta=fechaHasta,
-        especie_id=especieId,
-        punto_desembarco_id=puntoDesembarcoId,
+        especie=especie,
+        punto_desembarco=puntoDesembarco,
     )
     filas, nombre_archivo = service.exportar_indicador(db, indicador, filtros, agrupacion)
     return _streaming_csv(filas, nombre_archivo)

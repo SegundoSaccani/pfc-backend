@@ -141,7 +141,7 @@ def test_post_regla_409_si_ya_existe_para_esa_especie(client, monkeypatch):
     monkeypatch.setattr(service, "crear_regla", _raise)
     try:
         response = client.post(
-            "/api/reglamentaciones/1/reglas", json={"especieId": 1, "veda": True}
+            "/api/reglamentaciones/1/reglas", json={"especie": "Sábalo", "veda": True}
         )
     finally:
         _limpiar_overrides()
@@ -153,7 +153,7 @@ def test_post_regla_prohibido_para_fiscalizador(client):
     _forzar_rol(Rol.FISCALIZADOR)
     try:
         response = client.post(
-            "/api/reglamentaciones/1/reglas", json={"especieId": 1, "veda": True}
+            "/api/reglamentaciones/1/reglas", json={"especie": "Sábalo", "veda": True}
         )
     finally:
         _limpiar_overrides()

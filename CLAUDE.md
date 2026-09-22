@@ -68,10 +68,21 @@ capa "porque es más rápido".
 - Duplicados de relevamiento: se resuelven con la constraint
   `UNIQUE(fecha_hora, id_pescador, id_fiscalizador)` vía `ON CONFLICT` o `try/except IntegrityError`
   con rollback limpio — **nunca** un `SELECT` previo (condición de carrera) ni un 500 crudo.
+- **Ninguna búsqueda ni referencia externa (web, móvil, o cualquier cliente de la API) usa el `id`
+  interno de `Punto_desembarco`, `Pescador`, `Fiscalizador` ni `Especie_Pescado`**: esos `id` son
+  correlativos generados por el motor de la base, sin significado de negocio. Toda referencia a
+  esas entidades —filtros de búsqueda, body de creación— viaja por su columna `UNIQUE` (clave de
+  negocio) y el backend la resuelve al `id` interno solo puertas adentro (repositories/services).
+  Aplica a: `puntoDesembarco` (nombre), `nroPescador` (`Pescador.nro_pescador`), `fiscalizador`
+  (`Fiscalizador.nombre_user`) y `especie` (`Especie_Pescado.nombre_especie`). Las respuestas sí
+  pueden incluir el `id` interno junto al campo de negocio (es solo informativo), pero nunca se
+  acepta como criterio de búsqueda o de referencia en un request.
 - `puntoDesembarco` en `POST /api/relevamientos` viaja como **nombre en texto** (no id), se resuelve
   contra `Punto_desembarco.nombre` (columna `UNIQUE`).
-- `fiscalizadorId` va en el body del POST de relevamientos como campo **temporal**, con comentario
-  explícito de que se reemplaza por el usuario del token cuando exista auth real.
+- `fiscalizador` (username, `Fiscalizador.nombre_user`) va en el body del POST de relevamientos como
+  campo **temporal**, con comentario explícito de que se reemplaza por el usuario del token cuando
+  exista auth real. Antes viajaba como `fiscalizadorId` (id interno) — se cambió a la clave de
+  negocio por la misma regla de arriba.
 - Reglas de veda: `talla_min`/`talla_max` son `NOT NULL`; cuando `en_veda = true` se guardan
   `talla_min = 0` / `talla_max = 9999` (default aplicado en el backend). Se exponen siempre como
   números en el JSON, nunca `null`. El campo JSON es `veda` (alias de `en_veda`), no `enVeda`.

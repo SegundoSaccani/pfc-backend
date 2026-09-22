@@ -34,9 +34,9 @@ def test_post_relevamiento_devuelve_201_si_registrado(client, monkeypatch):
             "/api/relevamientos",
             json={
                 "fechaHora": "2026-09-13T18:30:00-03:00",
-                "pescadorId": 145,
-                "fiscalizadorId": 4,
-                "individuos": [{"especieId": 1, "talla": 42.5}],
+                "nroPescador": 145,
+                "fiscalizador": "fiscalizador1",
+                "individuos": [{"especie": "Sábalo", "talla": 42.5}],
             },
         )
     finally:
@@ -58,9 +58,9 @@ def test_post_relevamiento_devuelve_200_si_duplicado(client, monkeypatch):
             "/api/relevamientos",
             json={
                 "fechaHora": "2026-09-13T18:30:00-03:00",
-                "pescadorId": 145,
-                "fiscalizadorId": 4,
-                "individuos": [{"especieId": 1, "talla": 42.5}],
+                "nroPescador": 145,
+                "fiscalizador": "fiscalizador1",
+                "individuos": [{"especie": "Sábalo", "talla": 42.5}],
             },
         )
     finally:
@@ -77,9 +77,9 @@ def test_post_relevamiento_prohibido_para_usuario(client):
             "/api/relevamientos",
             json={
                 "fechaHora": "2026-09-13T18:30:00-03:00",
-                "pescadorId": 145,
-                "fiscalizadorId": 4,
-                "individuos": [{"especieId": 1, "talla": 42.5}],
+                "nroPescador": 145,
+                "fiscalizador": "fiscalizador1",
+                "individuos": [{"especie": "Sábalo", "talla": 42.5}],
             },
         )
     finally:
@@ -166,7 +166,7 @@ def test_post_relevamiento_422_si_referencias_invalidas(client, monkeypatch):
     def _raise(db, payload):
         raise ErrorValidacion(
             "Hay referencias inválidas en el relevamiento.",
-            [{"campo": "pescadorId", "mensaje": "No existe el pescador 999."}],
+            [{"campo": "nroPescador", "mensaje": "No existe el pescador con nro_pescador 999."}],
         )
 
     monkeypatch.setattr(service, "crear_relevamiento", _raise)
@@ -175,9 +175,9 @@ def test_post_relevamiento_422_si_referencias_invalidas(client, monkeypatch):
             "/api/relevamientos",
             json={
                 "fechaHora": "2026-09-13T18:30:00-03:00",
-                "pescadorId": 999,
-                "fiscalizadorId": 4,
-                "individuos": [{"especieId": 1, "talla": 42.5}],
+                "nroPescador": 999,
+                "fiscalizador": "fiscalizador1",
+                "individuos": [{"especie": "Sábalo", "talla": 42.5}],
             },
         )
     finally:

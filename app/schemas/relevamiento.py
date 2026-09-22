@@ -5,7 +5,7 @@ from app.schemas.comunes import Ubicacion
 
 
 class IndividuoCreate(CamelModel):
-    especie_id: int
+    especie: str
     talla: float
     confianza_especie: float | None = None
 
@@ -15,10 +15,12 @@ class RelevamientoCreate(CamelModel):
     punto_desembarco: str | None = None
     ubicacion: Ubicacion | None = None
     observaciones: str | None = None
-    pescador_id: int
-    # Temporal (PLAN.md sección 2.3 / CLAUDE.md): sin auth real, la app móvil manda el fiscalizador
-    # en el body. Reemplazar por el usuario del token cuando exista auth.
-    fiscalizador_id: int
+    # Se identifica por su clave de negocio (nro_pescador), nunca por el id interno (PLAN.md
+    # sección 2.4 / CLAUDE.md).
+    nro_pescador: int
+    # Temporal (PLAN.md sección 2.3 / CLAUDE.md): sin auth real, la app móvil manda el usuario del
+    # fiscalizador (nombre_user) en el body. Reemplazar por el usuario del token cuando exista auth.
+    fiscalizador: str
     individuos: list[IndividuoCreate]
 
 

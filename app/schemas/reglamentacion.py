@@ -16,7 +16,8 @@ class ReglamentacionResumen(CamelModel):
 
 
 class ReglaCreate(CamelModel):
-    especie_id: int
+    # Se identifica por su clave de negocio (nombre_especie), nunca por el id interno (CLAUDE.md).
+    especie: str
     veda: bool
     # Obligatorias solo si veda=false; si veda=true se ignoran y se guarda la convención 0/9999
     # (PLAN.md sección 2 / CLAUDE.md: en_veda NOT NULL en la base, tallas siempre numéricas).
@@ -25,7 +26,7 @@ class ReglaCreate(CamelModel):
 
 
 class ReglaUpdate(CamelModel):
-    especie_id: int | None = None
+    especie: str | None = None
     veda: bool
     talla_minima: float | None = None
     talla_maxima: float | None = None

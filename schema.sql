@@ -76,6 +76,8 @@ CREATE TABLE "Punto_desembarco"(
 ALTER TABLE
     "Punto_desembarco" ADD PRIMARY KEY("id");
 ALTER TABLE
+    "Punto_desembarco" ADD CONSTRAINT "punto_desembarco_nombre_unique" UNIQUE("nombre");
+ALTER TABLE
     "Relevamiento" ADD CONSTRAINT "relevamiento_id_fiscalizador_foreign" FOREIGN KEY("id_fiscalizador") REFERENCES "Fiscalizador"("id");
 ALTER TABLE
     "Regla" ADD CONSTRAINT "regla_id_especie_foreign" FOREIGN KEY("id_especie") REFERENCES "Especie_Pescado"("id");

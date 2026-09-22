@@ -200,6 +200,31 @@ las tablas de usuarios.
 
 Plan aprobado. Se continúa con `CLAUDE.md` y la Fase 1.
 
+### 6.1 Decisión (2026-09-22): ninguna búsqueda/referencia externa usa el `id` interno de catálogos
+
+Se detectó que varios endpoints usaban el `id` (PK numérica, sin lógica de negocio, generada por el
+motor) de `Punto_desembarco`, `Pescador`, `Fiscalizador` y `Especie_Pescado` como criterio de
+búsqueda o de referencia en requests — algo que las columnas `UNIQUE` de esas tablas ya estaban
+para resolver. Se corrigió en todos lados, lectura y creación (confirmado con el dueño del
+proyecto):
+
+- `GET /api/relevamientos`, `/api/indicadores/*` y sus `/export`: los filtros pasan de
+  `especieId`/`puntoDesembarcoId`/`pescadorId` (int) a `especie` (nombre), `puntoDesembarco`
+  (nombre) y `nroPescador` (`Pescador.nro_pescador`).
+- `POST /api/relevamientos`: `pescadorId` → `nroPescador`; `fiscalizadorId` → `fiscalizador`
+  (`Fiscalizador.nombre_user`, sigue siendo el campo temporal sin auth real — ver sección 2.3);
+  `individuos[].especieId` → `individuos[].especie` (nombre de especie).
+- `POST/PUT /api/reglamentaciones/{id}/reglas` y `/api/reglas/{id}`: `especieId` → `especie`
+  (nombre de especie).
+
+Las respuestas no cambian: siguen devolviendo el `id` interno junto al campo de negocio (es solo
+informativo, ver `EspecieResumen`/`PescadorResumen`/`FiscalizadorResumen`/`PuntoDesembarcoResumen`),
+pero ya no se acepta como entrada en ningún filtro ni body. Regla general documentada en
+`CLAUDE.md`. Rompe el contrato con `api_spec.txt` (que mostraba `especieId`/`puntoDesembarcoId`/
+`pescadorId`/`fiscalizadorId` numéricos) — divergencia intencional, no se corrige `api_spec.txt`
+(es el documento de partida, no un contrato vivo). A coordinar con el equipo móvil/web antes de
+integrar.
+
 ## 7. Estado de la Fase 8 (tests, OpenAPI, deploy) y qué falta para cerrar el proyecto
 
 Implementado:

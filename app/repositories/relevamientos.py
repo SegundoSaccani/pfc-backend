@@ -10,16 +10,16 @@ from app.models import EspeciePescado, Fiscalizador, Pescador, PescadoIndividuo,
 _CONSTRAINT_DUPLICADOS = "relevamiento_fecha_hora_id_pescador_id_fiscalizador_unique"
 
 
-def existe_especie(session: Session, especie_id: int) -> bool:
-    return session.get(EspeciePescado, especie_id) is not None
+def obtener_especie_por_nombre(session: Session, nombre_especie: str) -> EspeciePescado | None:
+    return session.scalar(select(EspeciePescado).where(EspeciePescado.nombre_especie == nombre_especie))
 
 
-def existe_pescador(session: Session, pescador_id: int) -> bool:
-    return session.get(Pescador, pescador_id) is not None
+def obtener_pescador_por_nro(session: Session, nro_pescador: int) -> Pescador | None:
+    return session.scalar(select(Pescador).where(Pescador.nro_pescador == nro_pescador))
 
 
-def existe_fiscalizador(session: Session, fiscalizador_id: int) -> bool:
-    return session.get(Fiscalizador, fiscalizador_id) is not None
+def obtener_fiscalizador_por_nombre_user(session: Session, nombre_user: str) -> Fiscalizador | None:
+    return session.scalar(select(Fiscalizador).where(Fiscalizador.nombre_user == nombre_user))
 
 
 def obtener_punto_desembarco_por_nombre(session: Session, nombre: str) -> PuntoDesembarco | None:
@@ -74,11 +74,14 @@ def obtener_detalle(session: Session, relevamiento_id: int) -> Relevamiento | No
 
 @dataclass
 class FiltrosRelevamiento:
+    """Filtros expuestos a clientes externos (web): siempre por clave de negocio (uniques), nunca
+    por el id interno de Pescador/Fiscalizador/Punto_desembarco/Especie_Pescado (CLAUDE.md)."""
+
     fecha_desde: date | None = None
     fecha_hasta: date | None = None
-    especie_id: int | None = None
-    punto_desembarco_id: int | None = None
-    pescador_id: int | None = None
+    especie: str | None = None
+    punto_desembarco: str | None = None
+    nro_pescador: int | None = None
 
     def condiciones(self) -> list:
         condiciones = []
@@ -86,16 +89,25 @@ class FiltrosRelevamiento:
             condiciones.append(Relevamiento.fecha_hora >= self.fecha_desde)
         if self.fecha_hasta is not None:
             condiciones.append(Relevamiento.fecha_hora < self.fecha_hasta_exclusiva())
-        if self.punto_desembarco_id is not None:
-            condiciones.append(Relevamiento.id_punto_desembarco == self.punto_desembarco_id)
-        if self.pescador_id is not None:
-            condiciones.append(Relevamiento.id_pescador == self.pescador_id)
-        if self.especie_id is not None:
+        if self.punto_desembarco is not None:
+            condiciones.append(
+                Relevamiento.id_punto_desembarco.in_(
+                    select(PuntoDesembarco.id).where(PuntoDesembarco.nombre == self.punto_desembarco)
+                )
+            )
+        if self.nro_pescador is not None:
+            condiciones.append(
+                Relevamiento.id_pescador.in_(
+                    select(Pescador.id).where(Pescador.nro_pescador == self.nro_pescador)
+                )
+            )
+        if self.especie is not None:
             condiciones.append(
                 select(PescadoIndividuo.id)
+                .join(EspeciePescado, PescadoIndividuo.id_especie == EspeciePescado.id)
                 .where(
                     PescadoIndividuo.id_relevamiento == Relevamiento.id,
-                    PescadoIndividuo.id_especie == self.especie_id,
+                    EspeciePescado.nombre_especie == self.especie,
                 )
                 .exists()
             )

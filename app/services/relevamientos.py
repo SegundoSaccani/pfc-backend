@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from sqlalchemy.orm import Session
 
 from app.core.errors import ErrorValidacion, RecursoNoEncontrado
@@ -12,22 +14,41 @@ from app.services.geo import ubicacion_a_geografia
 from app.services.relevamiento_mappers import relevamiento_a_detalle, relevamiento_a_list_item
 
 
-def _validar_referencias(session: Session, payload: RelevamientoCreate) -> int | None:
+@dataclass
+class _ReferenciasResueltas:
+    id_pescador: int
+    id_fiscalizador: int
+    id_punto_desembarco: int | None
+    id_especie_por_nombre: dict[str, int]
+
+
+def _validar_referencias(session: Session, payload: RelevamientoCreate) -> _ReferenciasResueltas:
+    # Todas las referencias externas se resuelven por clave de negocio (unique), nunca por el id
+    # interno de la tabla: los id son correlativos generados por el motor, sin significado fuera de
+    # la base (CLAUDE.md).
     detalles = []
 
-    if not repo.existe_pescador(session, payload.pescador_id):
-        detalles.append({"campo": "pescadorId", "mensaje": f"No existe el pescador {payload.pescador_id}."})
-
-    if not repo.existe_fiscalizador(session, payload.fiscalizador_id):
+    pescador = repo.obtener_pescador_por_nro(session, payload.nro_pescador)
+    if pescador is None:
         detalles.append(
-            {"campo": "fiscalizadorId", "mensaje": f"No existe el fiscalizador {payload.fiscalizador_id}."}
+            {"campo": "nroPescador", "mensaje": f"No existe el pescador con nro_pescador {payload.nro_pescador}."}
         )
 
-    for especie_id in {i.especie_id for i in payload.individuos}:
-        if not repo.existe_especie(session, especie_id):
-            detalles.append({"campo": "individuos.especieId", "mensaje": f"No existe la especie {especie_id}."})
+    fiscalizador = repo.obtener_fiscalizador_por_nombre_user(session, payload.fiscalizador)
+    if fiscalizador is None:
+        detalles.append(
+            {"campo": "fiscalizador", "mensaje": f"No existe el fiscalizador '{payload.fiscalizador}'."}
+        )
 
-    punto_desembarco_id = None
+    id_especie_por_nombre: dict[str, int] = {}
+    for nombre_especie in {i.especie for i in payload.individuos}:
+        especie = repo.obtener_especie_por_nombre(session, nombre_especie)
+        if especie is None:
+            detalles.append({"campo": "individuos.especie", "mensaje": f"No existe la especie '{nombre_especie}'."})
+        else:
+            id_especie_por_nombre[nombre_especie] = especie.id
+
+    id_punto_desembarco = None
     if payload.punto_desembarco is not None:
         punto = repo.obtener_punto_desembarco_por_nombre(session, payload.punto_desembarco)
         if punto is None:
@@ -38,23 +59,28 @@ def _validar_referencias(session: Session, payload: RelevamientoCreate) -> int |
                 }
             )
         else:
-            punto_desembarco_id = punto.id
+            id_punto_desembarco = punto.id
 
     if detalles:
         raise ErrorValidacion("Hay referencias inválidas en el relevamiento.", detalles)
 
-    return punto_desembarco_id
+    return _ReferenciasResueltas(
+        id_pescador=pescador.id,
+        id_fiscalizador=fiscalizador.id,
+        id_punto_desembarco=id_punto_desembarco,
+        id_especie_por_nombre=id_especie_por_nombre,
+    )
 
 
 def crear_relevamiento(session: Session, payload: RelevamientoCreate) -> RelevamientoCreateResponse:
-    punto_desembarco_id = _validar_referencias(session, payload)
+    referencias = _validar_referencias(session, payload)
 
     valores = {
         "fecha_hora": payload.fecha_hora,
-        "id_punto_desembarco": punto_desembarco_id,
+        "id_punto_desembarco": referencias.id_punto_desembarco,
         "ubicacion": ubicacion_a_geografia(payload.ubicacion),
-        "id_pescador": payload.pescador_id,
-        "id_fiscalizador": payload.fiscalizador_id,
+        "id_pescador": referencias.id_pescador,
+        "id_fiscalizador": referencias.id_fiscalizador,
         "observaciones": payload.observaciones,
     }
 
@@ -68,7 +94,7 @@ def crear_relevamiento(session: Session, payload: RelevamientoCreate) -> Relevam
                 {
                     "talla": individuo.talla,
                     "confianza_especie": individuo.confianza_especie,
-                    "id_especie": individuo.especie_id,
+                    "id_especie": referencias.id_especie_por_nombre[individuo.especie],
                 }
                 for individuo in payload.individuos
             ],

@@ -21,13 +21,13 @@ _ROLES_LECTURA = (Rol.USUARIO, Rol.ADMINISTRADOR)
 
 
 def _filtros(
-    fechaDesde: date | None, fechaHasta: date | None, especieId: int | None, puntoDesembarcoId: int | None
+    fechaDesde: date | None, fechaHasta: date | None, especie: str | None, puntoDesembarco: str | None
 ) -> FiltrosIndicador:
     return FiltrosIndicador(
         fecha_desde=fechaDesde,
         fecha_hasta=fechaHasta,
-        especie_id=especieId,
-        punto_desembarco_id=puntoDesembarcoId,
+        especie=especie,
+        punto_desembarco=puntoDesembarco,
     )
 
 
@@ -35,24 +35,24 @@ def _filtros(
 def capturas_por_especie(
     fechaDesde: date | None = Query(None),
     fechaHasta: date | None = Query(None),
-    especieId: int | None = Query(None),
-    puntoDesembarcoId: int | None = Query(None),
+    especie: str | None = Query(None),
+    puntoDesembarco: str | None = Query(None),
     db: Session = Depends(get_db),
     _usuario=Depends(require_rol(*_ROLES_LECTURA)),
 ):
-    return service.capturas_por_especie(db, _filtros(fechaDesde, fechaHasta, especieId, puntoDesembarcoId))
+    return service.capturas_por_especie(db, _filtros(fechaDesde, fechaHasta, especie, puntoDesembarco))
 
 
 @router.get("/capturas-por-punto", response_model=CapturasPorPuntoResponse)
 def capturas_por_punto(
     fechaDesde: date | None = Query(None),
     fechaHasta: date | None = Query(None),
-    especieId: int | None = Query(None),
-    puntoDesembarcoId: int | None = Query(None),
+    especie: str | None = Query(None),
+    puntoDesembarco: str | None = Query(None),
     db: Session = Depends(get_db),
     _usuario=Depends(require_rol(*_ROLES_LECTURA)),
 ):
-    return service.capturas_por_punto(db, _filtros(fechaDesde, fechaHasta, especieId, puntoDesembarcoId))
+    return service.capturas_por_punto(db, _filtros(fechaDesde, fechaHasta, especie, puntoDesembarco))
 
 
 @router.get("/evolucion-temporal", response_model=EvolucionTemporalResponse)
@@ -60,11 +60,11 @@ def evolucion_temporal(
     agrupacion: Agrupacion,
     fechaDesde: date | None = Query(None),
     fechaHasta: date | None = Query(None),
-    especieId: int | None = Query(None),
-    puntoDesembarcoId: int | None = Query(None),
+    especie: str | None = Query(None),
+    puntoDesembarco: str | None = Query(None),
     db: Session = Depends(get_db),
     _usuario=Depends(require_rol(*_ROLES_LECTURA)),
 ):
     return service.evolucion_temporal(
-        db, agrupacion, _filtros(fechaDesde, fechaHasta, especieId, puntoDesembarcoId)
+        db, agrupacion, _filtros(fechaDesde, fechaHasta, especie, puntoDesembarco)
     )

@@ -25,7 +25,10 @@ def _compila(stmt) -> str:
 
 def test_capturas_por_especie_compila_con_todos_los_filtros():
     filtros = FiltrosIndicador(
-        fecha_desde=date(2026, 1, 1), fecha_hasta=date(2026, 9, 30), especie_id=1, punto_desembarco_id=2
+        fecha_desde=date(2026, 1, 1),
+        fecha_hasta=date(2026, 9, 30),
+        especie="Sábalo",
+        punto_desembarco="Puerto de Santa Fe",
     )
     sql = _compila(_construir_capturas_por_especie(filtros))
     assert "Especie_Pescado" in sql
@@ -40,11 +43,11 @@ def test_capturas_por_punto_usa_left_join_para_zero_fill():
 
 
 def test_capturas_por_punto_con_filtro_de_punto_restringe_en_where_no_en_join():
-    filtros = FiltrosIndicador(punto_desembarco_id=2)
+    filtros = FiltrosIndicador(punto_desembarco="Puerto de Santa Fe")
     sql = _compila(_construir_capturas_por_punto(filtros))
     assert "WHERE" in sql
     where_clause = sql.split("WHERE", 1)[1]
-    assert '"Punto_desembarco".id' in where_clause
+    assert '"Punto_desembarco".nombre' in where_clause
 
 
 def test_capturas_por_punto_desglose_especie_usa_inner_joins():

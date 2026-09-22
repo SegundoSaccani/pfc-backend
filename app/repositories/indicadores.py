@@ -13,10 +13,13 @@ UNIDAD_SQL = {"dia": "day", "mes": "month", "anio": "year"}
 
 @dataclass
 class FiltrosIndicador:
+    """Filtros expuestos a clientes externos (web): siempre por clave de negocio (uniques), nunca
+    por el id interno de Punto_desembarco/Especie_Pescado (CLAUDE.md)."""
+
     fecha_desde: date | None = None
     fecha_hasta: date | None = None
-    especie_id: int | None = None
-    punto_desembarco_id: int | None = None
+    especie: str | None = None
+    punto_desembarco: str | None = None
 
     def fecha_hasta_exclusiva(self) -> datetime:
         return datetime.combine(self.fecha_hasta, datetime.min.time()) + timedelta(days=1)
@@ -31,14 +34,22 @@ class FiltrosIndicador:
 
     def condiciones_relevamiento(self) -> list:
         condiciones = self.condiciones_fecha()
-        if self.punto_desembarco_id is not None:
-            condiciones.append(Relevamiento.id_punto_desembarco == self.punto_desembarco_id)
+        if self.punto_desembarco is not None:
+            condiciones.append(
+                Relevamiento.id_punto_desembarco.in_(
+                    select(PuntoDesembarco.id).where(PuntoDesembarco.nombre == self.punto_desembarco)
+                )
+            )
         return condiciones
 
     def condiciones(self) -> list:
         condiciones = self.condiciones_relevamiento()
-        if self.especie_id is not None:
-            condiciones.append(PescadoIndividuo.id_especie == self.especie_id)
+        if self.especie is not None:
+            condiciones.append(
+                PescadoIndividuo.id_especie.in_(
+                    select(EspeciePescado.id).where(EspeciePescado.nombre_especie == self.especie)
+                )
+            )
         return condiciones
 
 
@@ -60,14 +71,18 @@ def capturas_por_especie(session: Session, filtros: FiltrosIndicador):
 
 def _construir_capturas_por_punto(filtros: FiltrosIndicador) -> Select:
     # Los filtros de fecha van en el ON del LEFT JOIN (para que los puntos sin capturas en el
-    # período sigan apareciendo con cantidad 0). puntoDesembarcoId, en cambio, restringe qué
+    # período sigan apareciendo con cantidad 0). puntoDesembarco, en cambio, restringe qué
     # puntos se devuelven -> va en el WHERE, no en el ON (si no, listaría igual todos los puntos).
     condiciones_join_relevamiento = [PuntoDesembarco.id == Relevamiento.id_punto_desembarco]
     condiciones_join_relevamiento.extend(filtros.condiciones_fecha())
 
     condiciones_join_individuo = [PescadoIndividuo.id_relevamiento == Relevamiento.id]
-    if filtros.especie_id is not None:
-        condiciones_join_individuo.append(PescadoIndividuo.id_especie == filtros.especie_id)
+    if filtros.especie is not None:
+        condiciones_join_individuo.append(
+            PescadoIndividuo.id_especie.in_(
+                select(EspeciePescado.id).where(EspeciePescado.nombre_especie == filtros.especie)
+            )
+        )
 
     stmt = (
         select(PuntoDesembarco.id, PuntoDesembarco.nombre, func.count(PescadoIndividuo.id))
@@ -77,8 +92,8 @@ def _construir_capturas_por_punto(filtros: FiltrosIndicador) -> Select:
         .group_by(PuntoDesembarco.id, PuntoDesembarco.nombre, PuntoDesembarco.numero_orden)
         .order_by(PuntoDesembarco.numero_orden)
     )
-    if filtros.punto_desembarco_id is not None:
-        stmt = stmt.where(PuntoDesembarco.id == filtros.punto_desembarco_id)
+    if filtros.punto_desembarco is not None:
+        stmt = stmt.where(PuntoDesembarco.nombre == filtros.punto_desembarco)
     return stmt
 
 

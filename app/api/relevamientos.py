@@ -34,9 +34,9 @@ def crear_relevamiento(
 def listar_relevamientos(
     fechaDesde: date | None = Query(None),
     fechaHasta: date | None = Query(None),
-    especieId: int | None = Query(None),
-    puntoDesembarcoId: int | None = Query(None),
-    pescadorId: int | None = Query(None),
+    especie: str | None = Query(None),
+    puntoDesembarco: str | None = Query(None),
+    nroPescador: int | None = Query(None),
     page: int = Query(0, ge=0),
     size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -45,9 +45,9 @@ def listar_relevamientos(
     filtros = FiltrosRelevamiento(
         fecha_desde=fechaDesde,
         fecha_hasta=fechaHasta,
-        especie_id=especieId,
-        punto_desembarco_id=puntoDesembarcoId,
-        pescador_id=pescadorId,
+        especie=especie,
+        punto_desembarco=puntoDesembarco,
+        nro_pescador=nroPescador,
     )
     return service.listar_relevamientos(db, filtros, page, size)
 
