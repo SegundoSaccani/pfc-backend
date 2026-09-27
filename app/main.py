@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api import catalogos, export, health, indicadores, reglamentacion, relevamientos
+from app.core.config import settings
 from app.core.errors import ApiError
 
 _CODIGO_POR_STATUS = {
@@ -25,6 +27,14 @@ def _error_response(status_code: int, codigo: str, mensaje: str, detalles: list 
 
 def create_app() -> FastAPI:
     app = FastAPI(title="API Relevamiento Pesca Artesanal")
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins_list,
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.exception_handler(ApiError)
     async def api_error_handler(request: Request, exc: ApiError) -> JSONResponse:
