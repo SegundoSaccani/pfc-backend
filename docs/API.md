@@ -45,7 +45,7 @@ varios puntos (están marcados como `(diverge de api_spec.txt)` donde aplica).
     "codigo": "ERROR_VALIDACION",
     "mensaje": "Hay referencias inválidas en el relevamiento.",
     "detalles": [
-      { "campo": "nroPescador", "mensaje": "No existe el pescador con nro_pescador 999." }
+      { "campo": "fiscalizador", "mensaje": "No existe el fiscalizador 'fiscalizador1'." }
     ]
   }
 }
@@ -80,7 +80,7 @@ Roles: `FISCALIZADOR`, `ADMINISTRADOR`. Lo usa la app móvil para sincronizar un
 | `puntoDesembarco` | string \| null | no | Nombre del punto (`Punto_desembarco.nombre`), no id |
 | `ubicacion` | `{ "latitud": float, "longitud": float }` \| null | no | Coordenadas del relevamiento |
 | `observaciones` | string \| null | no | Texto libre |
-| `nroPescador` | int | sí | `Pescador.nro_pescador` (clave de negocio, no id interno) |
+| `nroPescador` | int | sí | `Pescador.nro_pescador` (clave de negocio, no id interno). Si no existe un `Pescador` con ese número, se crea automáticamente |
 | `fiscalizador` | string | sí | `Fiscalizador.nombre_user` (username). **Campo temporal**: hasta que exista auth real, lo manda la app en el body; el día que haya login, sale del token, no del body |
 | `individuos` | array | sí (puede ser `[]`) | Lista de peces capturados |
 | `individuos[].especie` | string | sí | `Especie_Pescado.nombre_especie`, no id |
@@ -97,8 +97,9 @@ duplicado, no reinserta individuos):
 `estado` es `"REGISTRADO"` o `"DUPLICADO"`.
 
 **Errores:** `422 ERROR_VALIDACION` con un `detalle` por cada referencia inválida (se acumulan
-todas, no corta en la primera): `campo` puede ser `nroPescador`, `fiscalizador`,
-`individuos.especie` o `puntoDesembarco`. `403 PROHIBIDO` si el rol no es `FISCALIZADOR`/`ADMINISTRADOR`.
+todas, no corta en la primera): `campo` puede ser `fiscalizador`, `individuos.especie` o
+`puntoDesembarco` (`nroPescador` nunca falla por inexistente: se autocrea).
+`403 PROHIBIDO` si el rol no es `FISCALIZADOR`/`ADMINISTRADOR`.
 
 ### `GET /api/relevamientos`
 

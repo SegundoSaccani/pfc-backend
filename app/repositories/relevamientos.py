@@ -14,8 +14,21 @@ def obtener_especie_por_nombre(session: Session, nombre_especie: str) -> Especie
     return session.scalar(select(EspeciePescado).where(EspeciePescado.nombre_especie == nombre_especie))
 
 
-def obtener_pescador_por_nro(session: Session, nro_pescador: int) -> Pescador | None:
-    return session.scalar(select(Pescador).where(Pescador.nro_pescador == nro_pescador))
+def obtener_o_crear_pescador(session: Session, nro_pescador: int) -> Pescador:
+    """A diferencia del resto de las referencias del relevamiento, `Pescador` no tiene alta propia
+    todavía: si el nro_pescador no existe se crea acá. Mismo patrón anti-condición-de-carrera que
+    `insertar_relevamiento_o_duplicado` (INSERT ... ON CONFLICT en vez de SELECT previo)."""
+    stmt = (
+        pg_insert(Pescador)
+        .values(nro_pescador=nro_pescador)
+        .on_conflict_do_nothing(constraint="pescador_nro_pescador_unique")
+        .returning(Pescador.id)
+    )
+    fila = session.execute(stmt).first()
+    if fila is not None:
+        return Pescador(id=fila[0], nro_pescador=nro_pescador)
+
+    return session.scalars(select(Pescador).where(Pescador.nro_pescador == nro_pescador)).one()
 
 
 def obtener_fiscalizador_por_nombre_user(session: Session, nombre_user: str) -> Fiscalizador | None:

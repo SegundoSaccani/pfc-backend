@@ -302,10 +302,11 @@ hacer qué operación.
   `relevamiento_a_list_item` (recibe también `cantidad_individuos` porque ese conteo se calcula
   aparte, no viaja en la relación cargada) y `relevamiento_a_detalle`.
 - **`relevamientos.py`** — lógica de negocio de relevamientos:
-  - `_validar_referencias()` (privada) — antes de insertar, chequea que existan `pescadorId`,
-    `fiscalizadorId`, todas las especies de `individuos`, y resuelve `puntoDesembarco` (nombre) al
-    id real; si algo no existe, junta todos los errores en una sola `ErrorValidacion` (422) con un
-    `detalle` por campo, en vez de cortar en el primero.
+  - `_validar_referencias()` (privada) — antes de insertar, resuelve `fiscalizador` (username),
+    todas las especies de `individuos` y `puntoDesembarco` (nombre) al id real; si algo no existe,
+    junta todos los errores en una sola `ErrorValidacion` (422) con un `detalle` por campo, en vez
+    de cortar en el primero. `nroPescador` es la excepción: no valida existencia, crea el
+    `Pescador` en el momento si no existe (`repo.obtener_o_crear_pescador()`).
   - `crear_relevamiento()` — arma el dict de valores, delega el insert (con manejo de duplicados)
     al repository, y solo inserta los individuos si el relevamiento es nuevo (si era duplicado, no
     toca los individuos ya guardados). Devuelve `estado="REGISTRADO"` o `"DUPLICADO"`.
@@ -351,8 +352,11 @@ hacer qué operación.
 ### `app/repositories/`
 
 - **`relevamientos.py`** — acceso a datos de relevamientos:
-  - `existe_especie()` / `existe_pescador()` / `existe_fiscalizador()` — chequeos de existencia por
-    id, usados por el service para validar referencias.
+  - `obtener_especie_por_nombre()` / `obtener_fiscalizador_por_nombre_user()` — resuelven la clave
+    de negocio al registro real, usados por el service para validar referencias.
+  - `obtener_o_crear_pescador()` — a diferencia de las anteriores, no solo busca: si el
+    `nro_pescador` no existe todavía, lo crea (`INSERT ... ON CONFLICT DO NOTHING`, mismo patrón
+    anti-condición-de-carrera que `insertar_relevamiento_o_duplicado()`).
   - `obtener_punto_desembarco_por_nombre()` — resuelve el nombre de texto que viaja en el POST al
     id real.
   - `insertar_relevamiento_o_duplicado()` — el corazón del manejo de duplicados: hace un

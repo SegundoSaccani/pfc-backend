@@ -28,11 +28,9 @@ def _validar_referencias(session: Session, payload: RelevamientoCreate) -> _Refe
     # la base (CLAUDE.md).
     detalles = []
 
-    pescador = repo.obtener_pescador_por_nro(session, payload.nro_pescador)
-    if pescador is None:
-        detalles.append(
-            {"campo": "nroPescador", "mensaje": f"No existe el pescador con nro_pescador {payload.nro_pescador}."}
-        )
+    # A diferencia del resto de las referencias, Pescador no requiere alta previa: si el
+    # nro_pescador no existe todavía, se crea acá mismo (a pedido del usuario).
+    pescador = repo.obtener_o_crear_pescador(session, payload.nro_pescador)
 
     fiscalizador = repo.obtener_fiscalizador_por_nombre_user(session, payload.fiscalizador)
     if fiscalizador is None:

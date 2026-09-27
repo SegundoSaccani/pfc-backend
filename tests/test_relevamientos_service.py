@@ -26,7 +26,7 @@ def _payload(**overrides) -> RelevamientoCreate:
 
 def test_crear_relevamiento_falla_422_si_referencias_no_existen(monkeypatch):
     session = MagicMock()
-    monkeypatch.setattr(service.repo, "obtener_pescador_por_nro", lambda s, i: None)
+    monkeypatch.setattr(service.repo, "obtener_o_crear_pescador", lambda s, i: MagicMock(id=145))
     monkeypatch.setattr(service.repo, "obtener_fiscalizador_por_nombre_user", lambda s, i: None)
     monkeypatch.setattr(service.repo, "obtener_especie_por_nombre", lambda s, n: None)
     monkeypatch.setattr(service.repo, "obtener_punto_desembarco_por_nombre", lambda s, n: None)
@@ -35,12 +35,27 @@ def test_crear_relevamiento_falla_422_si_referencias_no_existen(monkeypatch):
         service.crear_relevamiento(session, _payload())
 
     campos = {d["campo"] for d in exc_info.value.detalles}
-    assert campos == {"nroPescador", "fiscalizador", "individuos.especie", "puntoDesembarco"}
+    assert campos == {"fiscalizador", "individuos.especie", "puntoDesembarco"}
+
+
+def test_crear_relevamiento_crea_pescador_inexistente(monkeypatch):
+    session = MagicMock()
+    obtener_o_crear_pescador = MagicMock(return_value=MagicMock(id=200))
+    monkeypatch.setattr(service.repo, "obtener_o_crear_pescador", obtener_o_crear_pescador)
+    monkeypatch.setattr(service.repo, "obtener_fiscalizador_por_nombre_user", lambda s, i: MagicMock(id=4))
+    monkeypatch.setattr(service.repo, "obtener_especie_por_nombre", lambda s, n: MagicMock(id=1))
+    monkeypatch.setattr(service.repo, "obtener_punto_desembarco_por_nombre", lambda s, n: MagicMock(id=3))
+    monkeypatch.setattr(service.repo, "insertar_relevamiento_o_duplicado", lambda s, v: (125, True))
+    monkeypatch.setattr(service.repo, "insertar_individuos", MagicMock())
+
+    service.crear_relevamiento(session, _payload(nro_pescador=555))
+
+    obtener_o_crear_pescador.assert_called_once_with(session, 555)
 
 
 def test_crear_relevamiento_nuevo_devuelve_registrado(monkeypatch):
     session = MagicMock()
-    monkeypatch.setattr(service.repo, "obtener_pescador_por_nro", lambda s, i: MagicMock(id=145))
+    monkeypatch.setattr(service.repo, "obtener_o_crear_pescador", lambda s, i: MagicMock(id=145))
     monkeypatch.setattr(service.repo, "obtener_fiscalizador_por_nombre_user", lambda s, i: MagicMock(id=4))
     monkeypatch.setattr(service.repo, "obtener_especie_por_nombre", lambda s, n: MagicMock(id=1))
     punto = MagicMock(id=3)
@@ -59,7 +74,7 @@ def test_crear_relevamiento_nuevo_devuelve_registrado(monkeypatch):
 
 def test_crear_relevamiento_duplicado_no_inserta_individuos(monkeypatch):
     session = MagicMock()
-    monkeypatch.setattr(service.repo, "obtener_pescador_por_nro", lambda s, i: MagicMock(id=145))
+    monkeypatch.setattr(service.repo, "obtener_o_crear_pescador", lambda s, i: MagicMock(id=145))
     monkeypatch.setattr(service.repo, "obtener_fiscalizador_por_nombre_user", lambda s, i: MagicMock(id=4))
     monkeypatch.setattr(service.repo, "obtener_especie_por_nombre", lambda s, n: MagicMock(id=1))
     monkeypatch.setattr(service.repo, "obtener_punto_desembarco_por_nombre", lambda s, n: MagicMock(id=3))
@@ -76,7 +91,7 @@ def test_crear_relevamiento_duplicado_no_inserta_individuos(monkeypatch):
 
 def test_crear_relevamiento_sin_punto_desembarco_no_valida_nombre(monkeypatch):
     session = MagicMock()
-    monkeypatch.setattr(service.repo, "obtener_pescador_por_nro", lambda s, i: MagicMock(id=145))
+    monkeypatch.setattr(service.repo, "obtener_o_crear_pescador", lambda s, i: MagicMock(id=145))
     monkeypatch.setattr(service.repo, "obtener_fiscalizador_por_nombre_user", lambda s, i: MagicMock(id=4))
     monkeypatch.setattr(service.repo, "obtener_especie_por_nombre", lambda s, n: MagicMock(id=1))
     llamado = MagicMock()
