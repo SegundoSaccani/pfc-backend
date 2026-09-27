@@ -25,9 +25,43 @@ def _error_response(status_code: int, codigo: str, mensaje: str, detalles: list 
     )
 
 
+class _CorsSafeErrorMiddleware:
+    """Starlette siempre corre ServerErrorMiddleware (donde cuelga el handler de `Exception`)
+    por fuera de los middlewares agregados con add_middleware, sin importar el orden en que se
+    agreguen — así que una excepción no atrapada nunca pasaría por CORSMiddleware y el navegador
+    la ve como fallo de red/CORS en vez de un 500 con el formato de error de la API. Este
+    middleware corre adentro de CORSMiddleware, arma esa misma respuesta ahí, y repropaga la
+    excepción para que loguee/comporte igual que antes (uvicorn, TestClient, etc.)."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        response_started = False
+
+        async def _send(message):
+            nonlocal response_started
+            if message["type"] == "http.response.start":
+                response_started = True
+            await send(message)
+
+        try:
+            await self.app(scope, receive, _send)
+        except Exception:
+            if not response_started:
+                response = _error_response(500, "ERROR_INTERNO", "Error interno del servidor.")
+                await response(scope, receive, send)
+            raise
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="API Relevamiento Pesca Artesanal")
 
+    app.add_middleware(_CorsSafeErrorMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
