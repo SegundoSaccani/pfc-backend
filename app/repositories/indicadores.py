@@ -131,9 +131,11 @@ def _construir_evolucion_temporal(
     inicio_truncado = func.date_trunc(unidad_pg, literal(rango_inicio))
     fin_truncado = func.date_trunc(unidad_pg, literal(rango_fin))
 
-    periodos = func.generate_series(
-        inicio_truncado, fin_truncado, text(f"interval '1 {unidad_pg}'")
-    ).table_valued("periodo")
+    periodos = (
+        func.generate_series(inicio_truncado, fin_truncado, text(f"interval '1 {unidad_pg}'"))
+        .table_valued("periodo")
+        .render_derived()
+    )
 
     capturas = (
         select(periodo_expr.label("periodo"), func.count(PescadoIndividuo.id).label("cantidad"))
